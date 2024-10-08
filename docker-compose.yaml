@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: postgres  # Replace with your desired database name
+      POSTGRES_USER: postgres    # Replace with your desired username
+      POSTGRES_PASSWORD: wvTreaEwj9ks934  # Replace with your desired password
+    ports:
+      - "5432:5432"  # Maps the container's port 5432 to the host
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persistent storage for database data
+    networks:
+      - postgres_network
+
+  
+volumes:
+  postgres_data:
+
+networks:
+  postgres_network:
