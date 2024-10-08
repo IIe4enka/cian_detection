@@ -39,8 +39,9 @@ async def detect_plans_from_urls(image_urls: list[str]):
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(predict_image, image) for image in images]
         
-        for future in as_completed(futures):
+        for i, future in enumerate(as_completed(futures)):
             result = future.result()
+            result["url"] = image_urls[i]  # Include the URL in the result
             results.append(result)
             total_predict_time += result['predict_time']
 
@@ -60,8 +61,9 @@ async def detect_plans_from_files(files: list[UploadFile] = File(...)):
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(predict_image, image) for image in images]
         
-        for future in as_completed(futures):
+        for i, future in enumerate(as_completed(futures)):
             result = future.result()
+            result["file_name"] = files[i].filename  # Include the file name in the result
             results.append(result)
             total_predict_time += result['predict_time']
 
@@ -69,6 +71,7 @@ async def detect_plans_from_files(files: list[UploadFile] = File(...)):
         "images": results,
         "total_predict_time": total_predict_time,
     })
+
 
 if __name__ == "__main__":
     import uvicorn
