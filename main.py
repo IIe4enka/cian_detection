@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 from io import BytesIO
+from pydantic import BaseModel
 from ultralytics import YOLO
 import time
 from PIL import Image
@@ -27,9 +28,13 @@ def predict_image(image):
         "predict_time": predict_time
     }
 
+class UrlInput(BaseModel):
+    image_urls: list[str]
+
 
 @app.post("/detect_plans_from_urls/")
-async def detect_plans_from_urls(image_urls: list[str]):
+async def detect_plans_from_urls(input: UrlInput):
+    image_urls = input.image_urls
     images_and_times = [download_image(image_url) for image_url in image_urls]
     images = [image for image, _ in images_and_times]
     total_download_time = sum(download_time for _, download_time in images_and_times)
