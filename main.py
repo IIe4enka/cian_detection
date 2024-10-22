@@ -9,7 +9,7 @@ from PIL import Image, UnidentifiedImageError
 from src.utils import download_image
 
 # Load the trained model
-model = YOLO('src/models/yolov8n-cian.pt')
+model = YOLO('src/models/best_22_10_2024.pt')
 app = FastAPI()
 
 
