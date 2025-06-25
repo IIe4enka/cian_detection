@@ -47,12 +47,14 @@ async def detect_plans_from_urls(input: UrlInput):
     images_and_times = []
     total_download_time = 0
     results = []
+    successful_urls = []  # Track URLs for successfully downloaded images
     
     # Download images, handling errors
     for url in image_urls:
         try:
             image, download_time = download_image(url)
             images_and_times.append((image, download_time))
+            successful_urls.append(url)  # Track the URL for this successful download
             total_download_time += download_time
         except Exception as e:
             results.append({
@@ -67,11 +69,13 @@ async def detect_plans_from_urls(input: UrlInput):
     total_predict_time = 0
 
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [executor.submit(predict_image, image) for image in images]
+        # Create a mapping between futures and their corresponding URLs
+        future_to_url = {executor.submit(predict_image, image): url 
+                        for image, url in zip(images, successful_urls)}
         
-        for i, future in enumerate(as_completed(futures)):
+        for future in as_completed(future_to_url):
             result = future.result()
-            result["url"] = image_urls[i]  # Include the URL in the result
+            result["url"] = future_to_url[future]  # Get the correct URL for this future
             results.append(result)
             if result["predict_time"] is not None:
                 total_predict_time += result['predict_time']
@@ -88,29 +92,39 @@ async def detect_plans_from_files(files: list[UploadFile] = File(...)):
     images = []
     results = []
     total_predict_time = 0
+    successful_files = []  # Track filenames for successfully loaded images
     
     # Handle file reading errors
     for file in files:
         try:
             image = Image.open(BytesIO(await file.read()))
             images.append(image)
+            successful_files.append(file.filename)  # Track the filename for this successful load
         except UnidentifiedImageError:
             results.append({
                 "file_name": file.filename,
-                "error": "Unrecognized image file"
+                "error": "Unrecognized image file",
+                "prediction": None,
+                "plan_probability": None,
+                "predict_time": None
             })
         except Exception as e:
             results.append({
                 "file_name": file.filename,
-                "error": f"Failed to read image file: {str(e)}"
+                "error": f"Failed to read image file: {str(e)}",
+                "prediction": None,
+                "plan_probability": None,
+                "predict_time": None
             })
 
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [executor.submit(predict_image, image) for image in images]
+        # Create a mapping between futures and their corresponding filenames
+        future_to_filename = {executor.submit(predict_image, image): filename 
+                             for image, filename in zip(images, successful_files)}
         
-        for i, future in enumerate(as_completed(futures)):
+        for future in as_completed(future_to_filename):
             result = future.result()
-            result["file_name"] = files[i].filename  # Include the file name in the result
+            result["file_name"] = future_to_filename[future]  # Get the correct filename for this future
             results.append(result)
             if result["predict_time"] is not None:
                 total_predict_time += result['predict_time']
